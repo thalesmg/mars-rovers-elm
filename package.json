@@ -1,0 +1,11 @@
+{
+  "name": "mars-rovers-elm",
+  "version": "0.1.0",
+  "description": "description for mars-rovers-elm",
+  "repository": "https://github.com/user/project.git",
+  "scripts": {
+    "start": "elm-factory dev",
+    "build": "elm-factory build",
+    "test": ""
+  }
+}
