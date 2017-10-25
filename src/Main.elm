@@ -63,16 +63,23 @@ isInside (Plateau {maxX, maxY}) (x, y) =
         (True, True) -> True
         _            -> False
 
-tryMove : Plateau -> Probe -> Maybe Probe
-tryMove plateau probe =
+tryMove : Plateau -> ProbeIndex -> Maybe Plateau
+tryMove plateau index =
     let
-        (Probe {position, direction}) = probe
-        (Plateau {maxX, maxY}) = plateau
-        newPos = shift direction position
-        inside = isInside plateau newPos
-        newProbe = Probe {position = newPos, direction = direction}
+        (Plateau {maxX, maxY, probes}) = plateau
+        mnewPlateau =
+            case fetchProbe plateau index of
+                Nothing -> Nothing
+                Just probe ->
+                    let
+                        (Probe {position, direction}) = probe
+                        newPos = shift direction position
+                        inside = isInside plateau newPos
+                        newProbe = Probe {position = newPos, direction = direction}
+                    in
+                        updateProbe plateau index newProbe
     in
-        if inside then Just newProbe else Nothing
+        mnewPlateau
 
 fetchProbe : Plateau -> ProbeIndex -> Maybe Probe
 fetchProbe plateau i =
@@ -112,8 +119,8 @@ updateProbe plateau i newProbe =
 
 type alias Model = Plateau
 
-init : Model
-init = Plateau {maxX = 10, maxY = 10, probes = []}
+init : (Model, Cmd Msg)
+init = (Plateau {maxX = 10, maxY = 10, probes = [Probe {position = (1,1), direction = E}]}, Cmd.none)
 
 -- Message
 
@@ -122,7 +129,7 @@ type alias ProbeIndex = Int
 type Msg = TurnRight ProbeIndex
          | TurnLeft ProbeIndex
          | Move ProbeIndex
-         | KeyPressed Keyboard.KeyCode
+         | NoOp
 
 -- Views
 
@@ -151,6 +158,7 @@ probeView probe  =
             , ("position", "absolute")
             , ("top", toString y ++ "px")
             , ("left", toString x ++ "px")
+            , ("transform", "rotate(" ++ toString (directionToAngle direction) ++ "deg)")
             ]
           ]
           [
@@ -163,6 +171,14 @@ probeView probe  =
             ]
             []
           ]
+
+directionToAngle : Direction -> Int
+directionToAngle dir =
+    case dir of
+        S -> 180
+        W -> 270
+        N -> 0
+        E -> 90
 
 view : Model -> Html Msg
 view model =
@@ -181,32 +197,61 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [
+    Sub.batch [ Keyboard.presses keyToMsg ]
 
-        ]
+keyToMsg : Keyboard.KeyCode -> Msg
+keyToMsg code =
+    case code of
+        -- Up
+        38 ->
+            Move 0
+        -- Left
+        37 ->
+            TurnLeft 0
+        -- Right
+        39 ->
+            TurnRight 0
+        _ ->
+            NoOp
 
 -- Updates
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     let
         (Plateau {maxX, maxY, probes}) = model
+        turn_probe i sense =
+            let
+                newmodel =
+                    case fetchProbe model i of
+                        Nothing -> model
+                        Just probe ->
+                            let
+                                newProbe = turn sense probe
+                                newPlateau = updateProbe model i newProbe
+                            in
+                                case newPlateau of
+                                    Nothing -> model
+                                    Just plateau -> plateau
+            in
+                (newmodel, Cmd.none)
     in
         case msg of
-            TurnLeft i ->
-                case fetchProbe model i of
-                    Nothing -> model
-                    Just probe ->
-
-                model
-            TurnRight i ->
-                model
+            TurnLeft i -> turn_probe i L
+            TurnRight i -> turn_probe i R
             Move i ->
-                model
+                let
+                    newmodel = tryMove model i
+                in
+                    case newmodel of
+                        Nothing -> (model, Cmd.none)
+                        Just newmodel -> (newmodel, Cmd.none)
+            NoOp ->
+                (model, Cmd.none)
 
-main = Html.beginnerProgram
-       { model = init
+main = Html.program
+       { init = init
        , view = view
        , update = update
+       , subscriptions = subscriptions
        }

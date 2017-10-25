@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "description": "description for mars-rovers-elm",
   "repository": "https://github.com/user/project.git",
-  "scripts": {
-    "start": "elm-factory dev",
-    "build": "elm-factory build",
-    "test": ""
+    "scripts": {
+        "start": "elm-live --output=dist/app.js src/Main.elm --pushstate --debug",
+        "build": "elm-make --output=dist/app.js src/Main.elm",
+        "test": ""
   }
 }
