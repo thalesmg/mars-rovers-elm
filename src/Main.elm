@@ -26,6 +26,9 @@ minX = 1
 minY : Int
 minY = 1
 
+step : Int
+step = 15
+
 cw : Direction -> Direction
 cw direction = case direction of
                    S -> W
@@ -44,7 +47,7 @@ turn : Sense -> Probe -> Probe
 turn sense (Probe rec) =
     let
         newdir = case sense of
-                     R -> cw rec.direction
+                     R -> cw  rec.direction
                      L -> ccw rec.direction
     in
         Probe {rec | direction = newdir}
@@ -52,9 +55,9 @@ turn sense (Probe rec) =
 shift : Direction -> (Int, Int) -> (Int, Int)
 shift dir (x, y) =
     case dir of
-        S -> (x, y - 1)
+        S -> (x, y + 1)
         E -> (x + 1, y)
-        N -> (x, y + 1)
+        N -> (x, y - 1)
         W -> (x - 1, y)
 
 isInside : Plateau -> (Int, Int) -> Bool
@@ -77,7 +80,9 @@ tryMove plateau index =
                         inside = isInside plateau newPos
                         newProbe = Probe {position = newPos, direction = direction}
                     in
-                        updateProbe plateau index newProbe
+                        if inside
+                          then updateProbe plateau index newProbe
+                          else Nothing
     in
         mnewPlateau
 
@@ -134,15 +139,18 @@ type Msg = TurnRight ProbeIndex
 -- Views
 
 myStyle : Model -> Attribute msg
-myStyle _ =
-    style
-    [ ("width", "300px")
-    , ("height", "300px")
-    , ("background-color", "orange")
-    , ("position", "relative")
-    , ("top", "15px")
-    , ("left", "15px")
-    ]
+myStyle model =
+    let
+        (Plateau {maxX, maxY, probes}) = model
+    in
+        style
+        [ ("width", toString ((maxX - minX + 1) * step) ++ "px")
+        , ("height", toString ((maxY - minY + 1) * step) ++ "px")
+        , ("background-color", "orange")
+        , ("position", "relative")
+        , ("top", toString step ++ "px")
+        , ("left", toString step ++ "px")
+        ]
 
 probeView : Probe -> Html Msg
 probeView probe  =
@@ -152,12 +160,12 @@ probeView probe  =
     in
         div
           [ style
-            [ ("width", "15px")
-            , ("height", "15px")
+            [ ("width", toString step ++ "px")
+            , ("height", toString step ++ "px")
             , ("backgroun-color", "red")
             , ("position", "absolute")
-            , ("top", toString y ++ "px")
-            , ("left", toString x ++ "px")
+            , ("top", toString ((y - 1) * step) ++ "px")
+            , ("left", toString ((x - 1) * step) ++ "px")
             , ("transform", "rotate(" ++ toString (directionToAngle direction) ++ "deg)")
             ]
           ]
